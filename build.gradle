@@ -1,0 +1,85 @@
+import org.gradle.internal.os.OperatingSystem
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+plugins {
+    id 'java-library'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+version = "0.1"
+
+ext.lwjglVersion = "3.3.2-SNAPSHOT"
+ext.jomlVersion = "1.10.5"
+ext.lwjgl3_awtVersion = "0.1.8"
+ext.flatlafVersion = "3.0"
+ext.svgSalamanderVersion = "1.1.4"
+
+switch (OperatingSystem.current()) {
+	case OperatingSystem.LINUX:
+		def osArch = System.getProperty("os.arch")
+		ext.lwjglNatives = osArch.startsWith("arm") || osArch.startsWith("aarch64")
+			? "natives-linux-${osArch.contains("64") || osArch.startsWith("armv8") ? "arm64" : "arm32"}"
+			: "natives-linux"
+		break
+	case OperatingSystem.MAC_OS:
+		ext.lwjglNatives = System.getProperty("os.arch").startsWith("aarch64") ? "natives-macos-arm64" : "natives-macos"
+		break
+	case OperatingSystem.WINDOWS:
+		def osArch = System.getProperty("os.arch")
+		ext.lwjglNatives = osArch.contains("64")
+			? "natives-windows${osArch.startsWith("aarch64") ? "-arm64" : ""}"
+			: "natives-windows-x86"
+		break
+}
+
+jar {
+    manifest {
+        attributes( "Main-Class": "io.github.lordgkram.blobimg.Main",
+                    "Implementation-Version": version)
+    }
+}
+
+repositories {
+	mavenCentral()
+	maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+dependencies {
+	implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
+	implementation "org.lwjgl:lwjgl"
+	//implementation "org.lwjgl:lwjgl-freetype"
+	implementation "org.lwjgl:lwjgl-opengl"
+
+	runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
+	//runtimeOnly "org.lwjgl:lwjgl-freetype::$lwjglNatives"
+	runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
+
+	implementation "org.joml:joml:${jomlVersion}"
+	implementation "org.lwjglx:lwjgl3-awt:${lwjgl3_awtVersion}"
+
+    implementation "com.formdev:flatlaf:${flatlafVersion}"
+    implementation "com.formdev:flatlaf-extras:${flatlafVersion}"
+	implementation "com.formdev:svgSalamander:${svgSalamanderVersion}"
+}
+
+shadowJar {
+    archiveBaseName.set('blobImage')
+    archiveClassifier.set("")
+	dependencies {
+		exclude(dependency("org.lwjgl:lwjgl::$lwjglNatives"))
+		//exclude(dependency("org.lwjgl:lwjgl-freetype::$lwjglNatives"))
+		exclude(dependency("org.lwjgl:lwjgl-opengl::$lwjglNatives"))
+	}
+}
+
+task nativesJar(type: ShadowJar) {
+    archiveBaseName.set('blobImage')
+    archiveClassifier.set("${lwjglNatives}")
+	configurations = [project.configurations.runtimeClasspath]
+	dependencies {
+		include(dependency("org.lwjgl:lwjgl::$lwjglNatives"))
+		//include(dependency("org.lwjgl:lwjgl-freetype::$lwjglNatives"))
+		include(dependency("org.lwjgl:lwjgl-opengl::$lwjglNatives"))
+	}
+}
