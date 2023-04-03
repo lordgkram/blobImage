@@ -415,7 +415,6 @@ public class Main {
                     shaderBlob.setVec2("starGrid", blobStarGridX, blobStarGridY);
                     shaderBlob.setFloat("starSize", blobStarSize);
                     shaderBlob.setFloat("starSeed", blobStarSeed);
-                    // TODO: moroptions
                     // -- bind
                     GL30.glBindVertexArray(displayVerteciesArray);
                     GL30.glActiveTexture(GL30.GL_TEXTURE0);
